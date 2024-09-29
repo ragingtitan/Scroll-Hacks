@@ -2,9 +2,11 @@ import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
+import time
+from collections import Counter
 
 # Load the trained model
-model_best = load_model('model/face_model.h5') # set your machine model file path here
+model_best = load_model('model/face_model.h5') # Set your machine model file path here
 
 # Classes 7 emotional states
 class_names = ['Angry', 'Disgusted', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
@@ -15,6 +17,11 @@ face_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_defau
 # Open a connection to the webcam (0 is usually the default camera)
 cap = cv2.VideoCapture(0)
 
+# Initialize variables to track time and emotions
+emotion_list = []
+start_time = time.time()  # Record the starting time
+
+# Loop until 10 seconds have passed
 while True:
     # Capture frame-by-frame
     ret, frame = cap.read()
@@ -41,6 +48,9 @@ while True:
         predictions = model_best.predict(face_image)
         emotion_label = class_names[np.argmax(predictions)]
 
+        # Append the emotion to the list
+        emotion_list.append(emotion_label)
+
         # Display the emotion label on the frame
         cv2.putText(frame, f'Emotion: {emotion_label}', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX,
                     0.9, (0, 0, 255), 2)
@@ -51,9 +61,18 @@ while True:
     # Display the resulting frame
     cv2.imshow('Emotion Detection', frame)
 
-    # Break the loop if 'q' key is pressed
+    # Break the loop if 'q' key is pressed or if 10 seconds have passed
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+    elif time.time() - start_time >= 10:  # Stop after 10 seconds
+        break
+
+# Calculate the most frequent emotion
+emotion_counts = Counter(emotion_list)
+most_common_emotion, frequency = emotion_counts.most_common(1)[0]
+
+# Display the average result
+print(f'The most common emotion in the past 10 seconds was: {most_common_emotion}')
 
 # Release the webcam and close the window
 cap.release()
